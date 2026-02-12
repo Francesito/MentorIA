@@ -3,7 +3,10 @@ import { FiHome, FiUsers, FiCalendar, FiMessageCircle, FiSettings } from 'react-
 
 const Sidebar = () => (
   <aside className="sidebar">
-    <div className="brand">MentorIA</div>
+    <div>
+      <div className="brand">MentorIA</div>
+      <small>Coaching + IA + n8n</small>
+    </div>
     <nav>
       <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}><FiHome /> Dashboard</NavLink>
       <NavLink to="/clientes" className={({ isActive }) => isActive ? 'active' : ''}><FiUsers /> Clientes</NavLink>

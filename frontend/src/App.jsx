@@ -19,7 +19,7 @@ const App = () => {
     const fetchMetrics = async () => {
       try {
         const { data } = await axios.get('/api/metrics');
-        setMetrics(data);
+        setMetrics({ ...sampleMetrics, ...data });
       } catch (err) {
         setError('No se pudo conectar al backend. Se muestran datos de ejemplo.');
       } finally {
