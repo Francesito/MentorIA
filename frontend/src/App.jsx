@@ -8,10 +8,9 @@ import Clients from './components/Clients';
 import Sessions from './components/Sessions';
 import Chatbot from './components/Chatbot';
 import Settings from './components/Settings';
-import { sampleMetrics } from './data/mock';
 
 const App = () => {
-  const [metrics, setMetrics] = useState(sampleMetrics);
+  const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -19,9 +18,9 @@ const App = () => {
     const fetchMetrics = async () => {
       try {
         const { data } = await axios.get('/api/metrics');
-        setMetrics({ ...sampleMetrics, ...data });
+        setMetrics(data);
       } catch (err) {
-        setError('No se pudo conectar al backend. Se muestran datos de ejemplo.');
+        setError('No se pudo conectar al backend. Revisa el servicio en puerto 4000.');
       } finally {
         setLoading(false);
       }
@@ -34,11 +33,9 @@ const App = () => {
       <Sidebar />
       <div className="main">
         <Topbar />
-        {loading ? (
-          <div className="panel">Cargando métricas...</div>
-        ) : error ? (
-          <div className="panel error">{error}</div>
-        ) : (
+        {loading && <div className="panel">Cargando métricas...</div>}
+        {!loading && error && <div className="panel error">{error}</div>}
+        {!loading && !error && metrics && (
           <Routes>
             <Route path="/" element={<Dashboard metrics={metrics} />} />
             <Route path="/clientes" element={<Clients />} />

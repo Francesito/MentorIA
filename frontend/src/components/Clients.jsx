@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { sampleClients } from '../data/mock';
 
 const Clients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     axios.get('/api/clients').then(({ data }) => {
       setClients(data);
       setLoading(false);
     }).catch(() => {
-      setClients(sampleClients);
+      setError('No se pudo cargar clientes. Revisa el backend y la base de datos.');
       setLoading(false);
     });
   }, []);
@@ -26,18 +26,24 @@ const Clients = () => {
         <button className="primary">Nuevo cliente</button>
       </div>
 
-      {loading ? 'Cargando...' : (
+      {loading && 'Cargando...'}
+      {!loading && error && <div className="error">{error}</div>}
+      {!loading && !error && (
         <div className="table">
           <div className="table-head">
-            <span>Nombre</span><span>Objetivo</span><span>Estado</span><span>Próxima sesión</span><span>Score IA</span>
+            <span>Cliente</span><span>Objetivo</span><span>Estado</span><span>Próxima sesión</span><span>Score IA</span><span>Engagement</span>
           </div>
           {clients.map((c) => (
             <div key={c.id} className="table-row">
-              <span>{c.name}</span>
+              <span className="client-cell">
+                <span className="avatar-mini" style={{ backgroundImage: `url(${c.avatar_url})` }} />
+                {c.name}
+              </span>
               <span>{c.goal}</span>
               <span className={`pill ${c.status}`}>{c.statusLabel}</span>
               <span>{c.nextSession}</span>
               <span>{c.score}/100</span>
+              <span>{c.engagement}%</span>
             </div>
           ))}
         </div>

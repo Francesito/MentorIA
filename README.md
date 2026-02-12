@@ -25,4 +25,6 @@ npm install
 npm run dev            # puerto 5173, proxy a 4000
 ```
 
-> Si el backend no está disponible, el frontend muestra datos de ejemplo para visualizar el flujo.
+## Datos reales en MySQL
+- El script `backend/schema.sql` crea la base, tablas (clients, sessions, goals, campaigns, reminders, mood) y carga datos iniciales.
+- El dashboard, CRM, agenda y chatbot leen directamente de MySQL; si el backend no responde se mostrarán errores (no datos mock).

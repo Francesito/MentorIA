@@ -20,80 +20,97 @@ const pool = mysql.createPool({
 });
 
 app.get('/api/metrics', async (_req, res) => {
-  // Demo data until DB seeded
-  res.json({
-    kpis: [
-      { label: 'Clientes activos', value: 24, trend: 12 },
-      { label: 'Sesiones mes', value: 68, trend: 5 },
-      { label: 'NPS', value: 72, trend: -3 }
-    ],
-    pipeline: [
-      { name: 'Ana', engagement: 82 },
-      { name: 'Luis', engagement: 75 },
-      { name: 'Marta', engagement: 90 },
-      { name: 'Carlos', engagement: 65 }
-    ],
-    goals: [
-      { label: 'En curso', value: 18 },
-      { label: 'Completados', value: 9 },
-      { label: 'En riesgo', value: 5 }
-    ],
-    sessions: [
-      { id: 1, client: 'Ana', topic: 'Liderazgo', date: '12 Feb 2026', time: '10:00' },
-      { id: 2, client: 'Luis', topic: 'Productividad', date: '12 Feb 2026', time: '12:00' },
-      { id: 3, client: 'Marta', topic: 'Cambio de rol', date: '13 Feb 2026', time: '09:00' }
-    ]
-  });
+  try {
+    const [
+      [kpiClientsRows],
+      [kpiSessionsRows],
+      [kpiScoreRows],
+      [pipelineRows],
+      [goalsRows],
+      [sessionsRows],
+      [campaignsRows],
+      [remindersRows],
+      [moodRows]
+    ] = await Promise.all([
+      pool.query("SELECT COUNT(*) AS value, 8 AS trend, 'Clientes activos' AS label FROM clients WHERE status='activo'"),
+      pool.query(`SELECT COUNT(*) AS value, 6 AS trend, 'Sesiones mes' AS label FROM sessions 
+                  WHERE MONTH(date)=MONTH(CURDATE()) AND YEAR(date)=YEAR(CURDATE())`),
+      pool.query("SELECT IFNULL(ROUND(AVG(score)),0) AS value, -2 AS trend, 'Satisfacción IA' AS label FROM clients"),
+      pool.query('SELECT name, engagement FROM clients ORDER BY engagement DESC LIMIT 10'),
+      pool.query('SELECT label, value FROM goals'),
+      pool.query(`SELECT s.id, c.name AS client, s.topic, 
+        DATE_FORMAT(s.date, '%d %b %Y') AS date, TIME_FORMAT(s.time, '%H:%i') AS time
+        FROM sessions s JOIN clients c ON s.client_id = c.id
+        ORDER BY s.date, s.time`),
+      pool.query('SELECT title, tag, image, cta FROM campaigns ORDER BY id'),
+      pool.query('SELECT title, time_label AS time FROM reminders ORDER BY id'),
+      pool.query('SELECT label, value FROM mood ORDER BY id')
+    ]);
+
+    res.json({
+      kpis: [kpiClientsRows[0], kpiSessionsRows[0], kpiScoreRows[0]],
+      pipeline: pipelineRows,
+      goals: goalsRows,
+      sessions: sessionsRows,
+      campaigns: campaignsRows,
+      reminders: remindersRows,
+      mood: moodRows
+    });
+  } catch (err) {
+    console.error('Error /api/metrics', err);
+    res.status(500).json({ message: 'Error obteniendo métricas' });
+  }
 });
 
 app.get('/api/clients', async (_req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, goal, status, next_session as nextSession, score FROM clients ORDER BY id DESC');
+    const [rows] = await pool.query(`SELECT id, name, goal, status, 
+      DATE_FORMAT(next_session, '%d %b %Y') AS nextSession, score, engagement, avatar_url
+      FROM clients ORDER BY id DESC`);
     const mapped = rows.map((r) => ({
       ...r,
       statusLabel: statusLabel(r.status)
     }));
     res.json(mapped);
   } catch (err) {
-    console.error(err);
-    res.status(200).json(sampleClients());
+    console.error('Error /api/clients', err);
+    res.status(500).json({ message: 'Error obteniendo clientes' });
   }
 });
 
 app.get('/api/sessions', async (_req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, client, topic, date, time FROM sessions ORDER BY date');
+    const [rows] = await pool.query(`SELECT s.id, c.name AS client, s.topic,
+      DATE_FORMAT(s.date, '%d %b %Y') AS date, TIME_FORMAT(s.time, '%H:%i') AS time, s.status
+      FROM sessions s JOIN clients c ON s.client_id = c.id
+      ORDER BY s.date, s.time`);
     res.json(rows);
   } catch (err) {
-    console.error(err);
-    res.status(200).json(sampleSessions());
+    console.error('Error /api/sessions', err);
+    res.status(500).json({ message: 'Error obteniendo sesiones' });
   }
 });
 
 app.post('/api/chat', async (req, res) => {
   const { message } = req.body;
-  // Aquí se integraría el modelo de IA + n8n webhook
-  res.json({ reply: `He recibido: "${message}". Te recuerdo tu próxima sesión el 12 Feb 2026 a las 10:00.` });
+  try {
+    const [rows] = await pool.query(`SELECT c.name, DATE_FORMAT(s.date, '%d %b %Y') AS date, TIME_FORMAT(s.time, '%H:%i') AS time
+      FROM sessions s JOIN clients c ON s.client_id = c.id
+      WHERE s.date >= CURDATE()
+      ORDER BY s.date, s.time LIMIT 1`);
+    const next = rows[0];
+    const reply = next
+      ? `Entendido. Próxima sesión con ${next.name} el ${next.date} a las ${next.time}.`
+      : 'Entendido. No encuentro sesiones próximas, ¿quieres agendar una?';
+    res.json({ reply, echo: message });
+  } catch (err) {
+    console.error('Error /api/chat', err);
+    res.status(500).json({ reply: 'No pude consultar la agenda ahora.' });
+  }
 });
 
 function statusLabel(status) {
   return status === 'activo' ? 'Activo' : status === 'riesgo' ? 'En riesgo' : 'Inactivo';
-}
-
-function sampleClients() {
-  return [
-    { id: 1, name: 'Ana', goal: 'Liderazgo', status: 'activo', statusLabel: 'Activo', nextSession: '12 Feb 2026', score: 82 },
-    { id: 2, name: 'Luis', goal: 'Productividad', status: 'riesgo', statusLabel: 'En riesgo', nextSession: '15 Feb 2026', score: 68 },
-    { id: 3, name: 'Marta', goal: 'Cambio de rol', status: 'activo', statusLabel: 'Activo', nextSession: '20 Feb 2026', score: 90 }
-  ];
-}
-
-function sampleSessions() {
-  return [
-    { id: 1, client: 'Ana', topic: 'Liderazgo', date: '12 Feb 2026', time: '10:00' },
-    { id: 2, client: 'Luis', topic: 'Productividad', date: '12 Feb 2026', time: '12:00' },
-    { id: 3, client: 'Marta', topic: 'Cambio de rol', date: '13 Feb 2026', time: '09:00' }
-  ];
 }
 
 const port = process.env.PORT || 4000;

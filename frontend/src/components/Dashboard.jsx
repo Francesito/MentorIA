@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
 import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { sampleMetrics } from '../data/mock';
 
 const colors = ['#a3ff12', '#00b0ff', '#f59e0b'];
 
 const Dashboard = ({ metrics }) => {
-  const merged = { ...sampleMetrics, ...metrics };
-  const { kpis, pipeline, sessions, campaigns, goals, reminders, mood } = merged;
+  const {
+    kpis = [],
+    pipeline = [],
+    sessions = [],
+    campaigns = [],
+    goals = [],
+    reminders = [],
+    mood = []
+  } = metrics || {};
   const [activeSlide, setActiveSlide] = useState(0);
 
   useEffect(() => {
+    if (!campaigns.length) return;
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % campaigns.length);
     }, 4500);
@@ -21,7 +28,7 @@ const Dashboard = ({ metrics }) => {
       <section className="panel hero span-2">
         <div>
           <p className="eyebrow">Mentoría asistida por IA</p>
-          <h1>Impulsa a tus clientes como un coach de alto rendimiento.</h1>
+          <h1>Impulsa a tus clientes con acompañamiento continuo.</h1>
           <p className="muted">Automatiza check-ins, personaliza recomendaciones y mantén el ritmo con alertas inteligentes.</p>
           <div className="hero-actions">
             <button className="primary">Programar sesión</button>
@@ -66,7 +73,7 @@ const Dashboard = ({ metrics }) => {
         <div className="carousel-header">
           <div>
             <p className="eyebrow">Campañas activas</p>
-            <h3>Plantillas estilo Nike para tus clientes</h3>
+            <h3>Experiencias curadas para tus clientes</h3>
           </div>
           <div className="dots">
             {campaigns.map((_, idx) => (

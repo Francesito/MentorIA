@@ -4,7 +4,7 @@ const Topbar = () => (
   <header className="topbar">
     <div>
       <h1>Panel Mentor</h1>
-      <p className="muted">Nike-inspired · Alto rendimiento con IA</p>
+      <p className="muted">MentorIA · Alto rendimiento con IA</p>
     </div>
     <div className="topbar-actions">
       <div style={{ position: 'relative' }}>

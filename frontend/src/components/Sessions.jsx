@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { sampleSessions } from '../data/mock';
 
 const Sessions = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     axios.get('/api/sessions').then(({ data }) => {
       setSessions(data);
       setLoading(false);
     }).catch(() => {
-      setSessions(sampleSessions);
+      setError('No se pudo cargar sesiones. Revisa el backend y la base de datos.');
       setLoading(false);
     });
   }, []);
@@ -26,7 +26,9 @@ const Sessions = () => {
         <button className="ghost">Exportar</button>
       </div>
 
-      {loading ? 'Cargando...' : (
+      {loading && 'Cargando...'}
+      {!loading && error && <div className="error">{error}</div>}
+      {!loading && !error && (
         <ul className="list">
           {sessions.map((s) => (
             <li key={s.id}>

@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([
-    { from: 'bot', text: 'Hola, ¿en qué puedo ayudarte con tu sesión?' }
+    { from: 'bot', text: 'Hola, soy MentorIA. Pregunta por tu próxima sesión o solicita un recordatorio.' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
